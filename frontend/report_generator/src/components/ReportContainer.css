@@ -1,0 +1,15 @@
+.report-container {
+    margin: 100px 20px;
+}
+
+.report-container > .card-data {
+    width: 300px;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
+
+.report-container > .charts {
+    display: flex;
+    flex-direction: row;
+}
