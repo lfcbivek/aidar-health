@@ -1,5 +1,5 @@
 .report-container {
-    margin: 100px 20px;
+    margin: 100px 10px;
 }
 
 .report-container > .card-data {
@@ -12,4 +12,9 @@
 .report-container > .charts {
     display: flex;
     flex-direction: row;
+    margin-top: 40px;
+}
+
+.report-container > .reports-table {
+    margin-top: 40px;
 }

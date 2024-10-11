@@ -1,17 +1,40 @@
-import React from "react";
-import { LineChart } from '@mui/x-charts/LineChart';
+import { BarChart } from '@mui/x-charts/BarChart';
+import { generateBloodPressureChartData } from '../utils';
 
-const BloodPressureChart = () => {
+const BloodPressureChart = (props) => {
+    console.log(props.report)
+    const chartData = generateBloodPressureChartData(props.report);
+    // const xAxisData = generateBloodPressureXAxisData(props.report)
     return (
-        <LineChart
-            xAxis={[{ data: [1, 2, 3, 5, 8, 10] }]}
+        <BarChart
+            xAxis={[{ 
+                dataKey: "timestamp", 
+                scaleType: 'band',
+                valueFormatter: (timestamp) => {
+                    const year = timestamp.getFullYear().toString();
+                    const month = (timestamp.getMonth() + 1).toString().padStart(2, '0');
+                    const day = timestamp.getDate().toString().padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                }
+                }]
+            }
+            // xAxis={[{data: xAxisData}]}
+            dataset={chartData}
             series={[
-            {
-                data: [2, 5.5, 2, 8.5, 1.5, 5],
-            },
+                {
+                    // type: 'line', 
+                    label:'Systolic Blood Pressure', 
+                    dataKey:'systolic',
+                    
+                },
+                {
+                    // type: 'line', 
+                    label:'Diastolic Blood Pressure', 
+                    dataKey:'diastolic',
+                }
             ]}
-            width={500}
-            height={300}
+            width={600}
+            height={600}
         />
     );
 }

@@ -9,3 +9,9 @@
 .patient-selector {
     padding-top: 10px;
 }
+
+.icons {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}
