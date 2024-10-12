@@ -15,8 +15,8 @@ Frameworks/Libraries Used:
 
 Prerequisite:
 I am assuming NodeJS and Python in installend. If not check out these links:
-[Link Python](https://www.python.org/downloads/)
-[Link NodeJS](https://nodejs.org/en/download/package-manager)
+[Python](https://www.python.org/downloads/)
+[NodeJS](https://nodejs.org/en/download/package-manager)
 
 
 Running the application:
