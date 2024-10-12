@@ -58,6 +58,14 @@ Run the frontend:
 npm start
 ```
 
+Make sure you migrate the database in Flask using
+
+```bash
+flask-db migrate
+```
+
+Data must be stored in the DB to run the application as expected.
+
 
   
 
