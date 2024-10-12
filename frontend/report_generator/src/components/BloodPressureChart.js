@@ -2,7 +2,6 @@ import { BarChart } from '@mui/x-charts/BarChart';
 import { generateBloodPressureChartData } from '../utils';
 
 const BloodPressureChart = (props) => {
-    console.log(props.report)
     const chartData = generateBloodPressureChartData(props.report);
     // const xAxisData = generateBloodPressureXAxisData(props.report)
     return (

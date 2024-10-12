@@ -15,6 +15,8 @@ export const getPatientsInfo = async () => {
 export const getReportData = async (patientId, fromDate, toDate) => {
     const formdata = new FormData();
     formdata.append("patient_id", patientId);
+    formdata.append("from_date", fromDate);
+    formdata.append("to_date", toDate);
 
     const requestOptions = {
         method: "POST",
@@ -23,6 +25,26 @@ export const getReportData = async (patientId, fromDate, toDate) => {
     };
 
     const response = await fetch(`${process.env.REACT_APP_GET_REPORT_URL}`, requestOptions);
+    if (!response.ok) {
+        throw new Error('Network response was not ok');
+    }
+    const data = await response.json();
+    return data;
+}
+export const sendEmail = async(patientId, toEmail, fromDate, toDate) => {
+    const formdata = new FormData();
+    formdata.append("patient_id", patientId);
+    formdata.append("from_date", fromDate);
+    formdata.append("to_email", toEmail);
+    formdata.append("to_date", toDate);
+
+    const requestOptions = {
+        method: "POST",
+        body: formdata,
+        redirect: "follow"
+    };
+
+    const response = await fetch(`${process.env.REACT_APP_SEND_EMAIL}`, requestOptions);
     if (!response.ok) {
         throw new Error('Network response was not ok');
     }
@@ -52,13 +74,3 @@ export const generatePulseRateChartData = (report) => {
     });
     return data;
 }
-
-
-// Function to format date to YYYY-MM-DD
-const formatDate = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-    const day = String(date.getDate()).padStart(2, '0');
-    console.log(`${year}-${month}-${day}`)
-    return `${year}-${month}-${day}`;
-};

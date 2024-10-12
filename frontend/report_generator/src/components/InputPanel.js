@@ -1,12 +1,14 @@
 import './InputPanel.css'
-import React, {useState, useEffect} from "react";
-import {InputLabel, MenuItem, FormHelperText, FormControl, Select, Button, CircularProgress } from '@mui/material';
+import React, {useState} from "react";
+import {InputLabel, MenuItem, FormControl, Select, Button, CircularProgress, Box, Modal,Typography, TextField } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { DemoContainer } from '@mui/x-date-pickers/internals/demo';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import ShareIcon from '@mui/icons-material/Share';
 import DownloadIcon from '@mui/icons-material/Download';
+import { sendEmail } from '../utils';
+
 
 const InputPanel = (props) => {
     const selectedPatientId = props.selectedPatientId;
@@ -16,6 +18,34 @@ const InputPanel = (props) => {
     const toDate = props.toDate;
     const isRequestSubmitted = props.isRequestSubmitted;
 
+    const [openModal, setOpenModal] = useState(false);
+    const handleOpen = () => setOpenModal(true);
+    const handleClose = () => setOpenModal(false);
+
+    const [email, setEmail] = useState('');
+
+    const handleEmailChange = (event) => {
+        console.log(event.target.value)
+        setEmail(event.target.value)
+    }
+
+    const handleSendEmail = async () => {
+        const response = await sendEmail(selectedPatientId, email, fromDate, toDate);
+        if(response.ok) {
+            handleClose();
+        }
+    }
+    const style = {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 400,
+        bgcolor: 'background.paper',
+        border: '2px solid #000',
+        boxShadow: 24,
+        p: 4,
+      };
 
     const downloadPdf = async () => {
         const formdata = new FormData();
@@ -104,7 +134,29 @@ const InputPanel = (props) => {
                         <DownloadIcon onClick={downloadPdf}/>
                     </div>
                     <div className='share'>
-                        <ShareIcon />
+                        <Button onClick={handleOpen}>
+                            <ShareIcon />
+                        </Button>
+                        <Modal
+                            open={openModal}
+                            onClose={handleClose}
+                            aria-labelledby="modal-modal-title"
+                            aria-describedby="modal-modal-description"
+                        >
+                            <Box sx={style}>
+                                <Typography id="modal-modal-title" variant="h6" component="h2">
+                                    Email
+                                </Typography>
+                                <Typography id="modal-modal-description" sx={{ mt: 2 }}>
+                                    <TextField id="outlined-basic" label="Email" variant="outlined" onChange={handleEmailChange}/>
+                                </Typography>
+                                <Typography id="modal-modal-description" sx={{ mt: 2 }}>
+                                    <Button onClick={handleSendEmail}>
+                                            Send Email
+                                    </Button>
+                                </Typography>
+                            </Box>
+                        </Modal>
                     </div>
                 </div>
             }   

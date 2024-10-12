@@ -1,30 +1,35 @@
+import os
+import io
+import smtplib
+
 from flask import Flask, jsonify, request, send_file
 from flask_mail import Mail, Message
 from flask_cors import CORS
 from models import db, Patient, Report
+
 from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.lib import styles
+from reportlab.lib import colors, styles
 from reportlab.pdfgen import canvas
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-import os
-import io
-from flask_mailman import Mail, EmailMessage
 
-mail = Mail()
+from dotenv import load_dotenv
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 
+import ssl
+from utils import generate_patient_pdf_report
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 app = Flask(__name__)
-app.config['MAIL_SERVER'] = 'smtp.fastmail.com'
-app.config['MAIL_PORT'] = 485
-app.config['MAIL_USERNAME'] = os.environ.get('EMAIL')
-app.config['MAIL_PASSWORD'] = os.environ.get('PASSWORD')
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = True
 
 
-mail.init_app(app)
-
+SMTP_SERVER = os.environ.get('SMTP_SERVER')
+SMTP_PORT = os.environ.get('SMTP_PORT')
+USERNAME = os.environ.get('EMAIL_USERNAME')
+PASSWORD = os.environ.get('EMAIL_PASSWORD')
 
 #Enable CORS, so that the frontend can make API calls
 CORS(app)
@@ -34,6 +39,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
+# Endpoint to retrieve data of all the pateints for the physician
 @app.route("/get-patients", methods=['GET'])
 def get_patients():
     patients = Patient.query.all()
@@ -50,13 +56,14 @@ def get_patients():
     ]
     return jsonify({"patients": patients_info})
 
+# Endpoint to get report data of the selected patient
 @app.route("/get-report", methods=['POST'])
 def get_report():
     if request.method == 'POST':
         patient_id = request.form.get('patient_id')
-        # from_date = request.form.get('from_date')
-        # to_date = request.form.get('to_date')
-        reports = Report.query.filter_by(patient_id=patient_id).all()
+        from_date = request.form.get('from_date')
+        to_date = request.form.get('to_date')
+        reports = Report.query.filter(Report.patient_id==patient_id).filter(Report.recorded_at >= from_date).filter(Report.recorded_at <= to_date).all()
         patients_info = [
             {
                 'report_id': report.report_id,
@@ -75,66 +82,66 @@ def get_report():
         ]
         return jsonify({"reports": patients_info})
 
-@app.route("/send-email")
+# Endpoint to send report attachment via email
+@app.route("/send-email", methods=['POST'])
 def send_email():
-    msg = EmailMessage(
-        "THis is the subject",
-        "Body of email",
-        "bivek@fastmail.com",
-        ["bivek@fastmail.com"]
-    )
-    msg.send()
-    return "sent email..."
+    
+    if request.method == 'POST':
+        patient_id = request.form.get('patient_id')
+        to_email = request.form.get('to_email')
+        from_date = request.form.get("from_date")
+        to_date = request.form.get("to_date")
 
+        print(patient_id)
+        print(to_email)
+        print(from_date)
+        print(to_date)
+
+        subject = 'Patient Report'
+        body = 'Pateint Report'
+        if not to_email or not subject or not body:
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        try:
+            # Create the email
+            msg = MIMEMultipart()
+            msg['From'] = 'bivek@fastmail.com'
+            msg['To'] = to_email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(body, 'html'))
+
+            pdf_buffer = generate_patient_pdf_report(patient_id, from_date, to_date)
+            # Attach the PDF
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(pdf_buffer.read())
+            encoders.encode_base64(part)
+            part.add_header(
+                'Content-Disposition',
+                f'attachment; filename=patient_report.pdf',
+            )
+            msg.attach(part)
+
+            # Connect to the SMTP server and send the email
+            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+                server.starttls()  # Upgrade the connection to TLS
+                server.login(USERNAME, PASSWORD)
+                server.sendmail(msg['From'], msg['To'], msg.as_string())
+
+
+            return jsonify({'message': 'Email sent successfully'}), 200
+
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+#Endpoint to generate pdf for the physician to download
 @app.route("/generate-pdf", methods=['POST'])
 def download_pdf():
     if request.method == 'POST':
         patient_id = request.form.get('patient_id')
-        # from_date = request.form.get('from_date')
-        # to_date = request.form.get('to_date')
+        from_date = request.form.get('from_date')
+        to_date = request.form.get('to_date')
 
-        patient = Patient.query.filter_by(patient_id=patient_id).first()
-        # print(patients.patient_id)
-        patient_name = patient.first_name + " " + patient.last_name
-        patient_email = patient.email
-        patient_dob = patient.dob
-        patient_gender = patient.gender
-
-        reports = Report.query.filter_by(patient_id=patient_id).all()
-        data = [['Report ID', 'Heart Rate', 'Body Temperature', 'Oxygen Saturation', 'Systolic BP', 'Diastolic BP']]  # Header
-        for report in reports:
-            data.append([report.report_id, report.heart_rate, report.body_temperature, report.oxygen_saturation, report.systolic_blood_pressure, report.diastolic_blood_pressure]) 
-        
-        buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter)
-
-        elements = []
-
-        elements.append(Paragraph("Patient Report from From Date to To Date", styles.getSampleStyleSheet()['Title']))
-        elements.append(Paragraph(f"Patient Name: {patient_name}", styles.getSampleStyleSheet()['BodyText']))
-        elements.append(Paragraph(f"Email: {patient_email}", styles.getSampleStyleSheet()['BodyText']))
-        elements.append(Paragraph(f"DOB: {patient_dob}", styles.getSampleStyleSheet()['BodyText']))
-        elements.append(Paragraph(f"Gender: {patient_gender}", styles.getSampleStyleSheet()['BodyText']))
-        elements.append(Paragraph("<br/>", styles.getSampleStyleSheet()['BodyText']))
-        elements.append(Paragraph("<br/>", styles.getSampleStyleSheet()['BodyText']))
-        elements.append(Paragraph("<br/>", styles.getSampleStyleSheet()['BodyText']))
-
-        table = Table(data)
-
-        style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ])
-        table.setStyle(style)
-
-        elements.append(table)
-        doc.build(elements)
-        buffer.seek(0)
+        buffer = generate_patient_pdf_report(patient_id, from_date, to_date)
 
         return send_file(buffer, as_attachment=True, download_name="document.pdf", mimetype='application/pdf')
 
