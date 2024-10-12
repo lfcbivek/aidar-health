@@ -49,7 +49,9 @@ const InputPanel = (props) => {
 
     const downloadPdf = async () => {
         const formdata = new FormData();
-        formdata.append("patient_id", `${selectedPatientId}`); // You can change "1" to any patient ID you want to use
+        formdata.append("patient_id", `${selectedPatientId}`);
+        formdata.append("from_date", fromDate);
+        formdata.append("to_date", toDate);
     
         const requestOptions = {
             method: "POST",

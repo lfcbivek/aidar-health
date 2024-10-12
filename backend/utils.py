@@ -13,8 +13,11 @@ def generate_patient_pdf_report(patient_id, from_date, to_date):
     patient_dob = patient.dob
     patient_gender = patient.gender
 
-    reports = Report.query.filter(Report.patient_id==patient_id).all()
-    # reports = Report.query.filter(Report.patient_id==patient_id).filter(Report.recorded_at >= from_date).filter(Report.recorded_at <= to_date).all()
+    # reports = Report.query.filter(Report.patient_id==patient_id).all()
+    print(patient_id)
+    print(from_date)
+    print(to_date)
+    reports = Report.query.filter(Report.patient_id==patient_id).filter(Report.recorded_at >= from_date).filter(Report.recorded_at <= to_date).all()
     data = [['Report ID', 'Heart Rate', 'Body Temperature', 'Oxygen Saturation', 'Systolic BP', 'Diastolic BP']]  # Header
     for report in reports:
         data.append([report.report_id, report.heart_rate, report.body_temperature, report.oxygen_saturation, report.systolic_blood_pressure, report.diastolic_blood_pressure]) 
